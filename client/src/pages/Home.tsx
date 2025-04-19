@@ -77,23 +77,11 @@ export default function Home() {
         </header>
 
         <main className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-4/12 space-y-6">
+          <div className="w-full md:w-3/12 space-y-6">
             <ToolsSection tools={tools} />
-            <div className="bg-white rounded-lg shadow p-4">
-              <FileUpload onSelect={setSelectedFile} />
-              {selectedFile && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <h4 className="font-medium">קובץ נבחר:</h4>
-                  <p className="text-sm">{selectedFile.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    נסה לשאול: "אנלז את קובץ ה-Excel הזה: {selectedFile.fullPath}"
-                  </p>
-                </div>
-              )}
-            </div>
             <ConnectionStatus state={connectionState} />
           </div>
-          <div className="w-full md:w-8/12">
+          <div className="w-full md:w-9/12">
             <ChatSection tools={tools} onError={setError} onLatencyUpdate={updateAvgResponse} />
           </div>
         </main>

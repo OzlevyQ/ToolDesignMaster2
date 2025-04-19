@@ -32,7 +32,12 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB max file size
   },
   fileFilter: function (req, file, cb) {
-    // Accept only Excel files
+    // For now, accept all file types but let the client handle showing appropriate messages
+    console.log('File upload attempt:', file);
+    return cb(null, true);
+    
+    // Original code to restrict to Excel only:
+    /*
     const filetypes = /xlsx|xls/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = filetypes.test(file.mimetype);
@@ -42,6 +47,7 @@ const upload = multer({
     } else {
       cb(new Error('Only Excel files (.xlsx, .xls) are allowed!'));
     }
+    */
   }
 });
 
