@@ -1,6 +1,8 @@
 import fetch from "node-fetch";
-import { toolDefinitions, toolsToJsonSchema } from "@shared/tools";
+import { toolsToJsonSchema } from "@shared/tools";
 import { ToolExecutor } from "./tools";
+import { db } from "./db";
+import { tools as toolsTable } from "@shared/schema";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
@@ -60,7 +62,18 @@ export class MCPServer {
   }
   
   private async callGeminiAPI(message: string) {
-    const tools = toolsToJsonSchema(toolDefinitions);
+    // Fetch tools from database
+    const dbTools = await db.select().from(toolsTable);
+    
+    // Convert DB tool format to the format needed for Gemini
+    const toolsForGemini = dbTools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters as Record<string, any>
+    }));
+    
+    // Convert tools to JSON schema
+    const tools = toolsToJsonSchema(toolsForGemini);
     
     const requestBody = {
       contents: [

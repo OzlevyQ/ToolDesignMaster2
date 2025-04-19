@@ -2,9 +2,11 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { toolDefinitions, formatToolsForClient } from "@shared/tools";
+import { formatToolsForClient } from "@shared/tools";
 import { ToolExecutor } from "./tools";
 import { MCPServer } from "./mcp";
+import { db } from "./db";
+import { tools as toolsTable } from "@shared/schema";
 
 // Validation schemas
 const chatRequestSchema = z.object({
@@ -23,10 +25,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const toolExecutor = new ToolExecutor();
   const mcpServer = new MCPServer(toolExecutor);
 
-  // Get available tools
+  // Get available tools from database
   app.get("/api/tools", async (_req: Request, res: Response) => {
     try {
-      const tools = formatToolsForClient(toolDefinitions);
+      const dbTools = await db.select().from(toolsTable);
+
+      // Convert DB tools to the format expected by the client
+      const tools = dbTools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters ? (tool.parameters as Record<string, any>) : undefined
+      }));
+
       res.json(tools);
     } catch (error) {
       console.error("Error fetching tools:", error);

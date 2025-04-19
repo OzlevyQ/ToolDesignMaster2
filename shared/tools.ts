@@ -11,43 +11,6 @@ export interface ToolDefinition {
   parameters?: Record<string, ToolParameter>;
 }
 
-// Define our tool specifications
-export const toolDefinitions: ToolDefinition[] = [
-  {
-    name: "get_time",
-    description: "Returns the current server time",
-    parameters: {}
-  },
-  {
-    name: "add",
-    description: "Adds two numbers together",
-    parameters: {
-      a: {
-        type: "number",
-        description: "First number to add"
-      },
-      b: {
-        type: "number",
-        description: "Second number to add"
-      }
-    }
-  },
-  {
-    name: "multiply",
-    description: "Multiplies two numbers",
-    parameters: {
-      a: {
-        type: "number",
-        description: "First number to multiply"
-      },
-      b: {
-        type: "number",
-        description: "Second number to multiply"
-      }
-    }
-  }
-];
-
 // Convert tool definitions to JSON schema for function calling
 export function toolsToJsonSchema(tools: ToolDefinition[]) {
   return tools.map(tool => {
