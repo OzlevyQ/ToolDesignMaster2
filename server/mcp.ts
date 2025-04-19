@@ -100,7 +100,7 @@ export class MCPServer {
       throw new Error(`Gemini API error (${response.status}): ${errorText}`);
     }
     
-    const data = await response.json();
+    const data = await response.json() as any;
     
     if (!data.candidates || data.candidates.length === 0) {
       throw new Error("No response from Gemini API");
@@ -114,9 +114,20 @@ export class MCPServer {
     if (content.parts && content.parts.length > 0) {
       for (const part of content.parts) {
         if (part.functionCall) {
+          // Handle the case when args is already an object or a string
+          let args = part.functionCall.args;
+          if (typeof args === 'string') {
+            try {
+              args = JSON.parse(args);
+            } catch (error) {
+              console.error('Error parsing function call arguments:', error);
+              throw new Error(`Invalid function call arguments: ${args}`);
+            }
+          }
+          
           functionCall = {
             name: part.functionCall.name,
-            arguments: JSON.parse(part.functionCall.args)
+            arguments: args
           };
           break;
         }
@@ -156,7 +167,9 @@ export class MCPServer {
             {
               functionCall: {
                 name: functionCall.name,
-                args: functionCall.arguments
+                args: typeof functionCall.arguments === 'string' 
+                  ? functionCall.arguments 
+                  : JSON.stringify(functionCall.arguments)
               }
             }
           ]
@@ -194,7 +207,7 @@ export class MCPServer {
       throw new Error(`Gemini API error (${response.status}): ${errorText}`);
     }
     
-    const data = await response.json();
+    const data = await response.json() as any;
     
     if (!data.candidates || data.candidates.length === 0) {
       throw new Error("No response from Gemini API");
