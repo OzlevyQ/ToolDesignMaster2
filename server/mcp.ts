@@ -2,7 +2,13 @@ import fetch from "node-fetch";
 import { toolsToJsonSchema } from "@shared/tools";
 import { ToolExecutor } from "./tools";
 import { db } from "./db";
-import { tools as toolsTable } from "@shared/schema";
+import { sql } from "drizzle-orm";
+import { 
+  tools as toolsTable, 
+  messages, 
+  chatSessions, 
+  functionCalls 
+} from "@shared/schema";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
@@ -14,9 +20,35 @@ interface FunctionCall {
 
 export class MCPServer {
   private toolExecutor: ToolExecutor;
+  private currentSessionId: number | null = null;
   
   constructor(toolExecutor: ToolExecutor) {
     this.toolExecutor = toolExecutor;
+    this.ensureSessionExists();
+  }
+  
+  // Make sure we have a valid session ID for storing messages
+  private async ensureSessionExists() {
+    if (this.currentSessionId === null) {
+      // Create a new chat session
+      const [session] = await db.insert(chatSessions)
+        .values({})
+        .returning();
+      
+      this.currentSessionId = session.id;
+    }
+  }
+  
+  // Get tool ID by name
+  private async getToolId(toolName: string): Promise<number> {
+    const [tool] = await db.select().from(toolsTable)
+      .where(sql`${toolsTable.name} = ${toolName}`);
+    
+    if (!tool) {
+      throw new Error(`Tool not found: ${toolName}`);
+    }
+    
+    return tool.id;
   }
   
   async processMessage(message: string) {
@@ -24,32 +56,92 @@ export class MCPServer {
       throw new Error("GEMINI_API_KEY environment variable is not set");
     }
     
+    await this.ensureSessionExists();
+    
     try {
-      // Step 1: Call Gemini with function definitions
-      const initialResponse = await this.callGeminiAPI(message);
+      // Step 1: Save user message to database
+      const [userMessage] = await db.insert(messages)
+        .values({
+          role: 'user',
+          content: message,
+          session_id: this.currentSessionId!
+        })
+        .returning();
       
-      // Step 2: Check if there's a function call
+      // Step 2: Call Gemini with function definitions
+      const startTime = Date.now();
+      const initialResponse = await this.callGeminiAPI(message);
+      const endTime = Date.now();
+      const executionTime = endTime - startTime;
+      
+      // Step 3: Check if there's a function call
       if (initialResponse.functionCall) {
         const functionCall = initialResponse.functionCall;
         
-        // Step 3: Execute the function
+        // Save assistant message with function call
+        const [assistantMessage] = await db.insert(messages)
+          .values({
+            role: 'assistant',
+            content: initialResponse.content || '',
+            function_call: functionCall,
+            execution_time: executionTime,
+            session_id: this.currentSessionId!
+          })
+          .returning();
+        
+        // Step 4: Execute the function
+        const funcStartTime = Date.now();
         const functionResult = await this.toolExecutor.executeFunction(
           functionCall.name,
           functionCall.arguments
         );
+        const funcEndTime = Date.now();
+        const funcExecutionTime = funcEndTime - funcStartTime;
         
-        // Step 4: Call Gemini again with the function result
+        // Save function call details
+        const toolId = await this.getToolId(functionCall.name);
+        await db.insert(functionCalls)
+          .values({
+            message_id: assistantMessage.id,
+            tool_id: toolId,
+            arguments: functionCall.arguments,
+            result: functionResult,
+            execution_time: funcExecutionTime
+          });
+        
+        // Step 5: Call Gemini again with the function result
+        const finalStartTime = Date.now();
         const finalResponse = await this.callGeminiWithFunctionResult(
           message,
           functionCall,
           functionResult
         );
+        const finalEndTime = Date.now();
+        const finalExecutionTime = finalEndTime - finalStartTime;
+        
+        // Save final assistant response
+        await db.insert(messages)
+          .values({
+            role: 'assistant',
+            content: finalResponse.content,
+            session_id: this.currentSessionId!,
+            execution_time: finalExecutionTime
+          });
         
         return {
           functionCall,
           finalResponse: finalResponse.content
         };
       }
+      
+      // No function call, just save the assistant message
+      await db.insert(messages)
+        .values({
+          role: 'assistant',
+          content: initialResponse.content,
+          session_id: this.currentSessionId!,
+          execution_time: executionTime
+        });
       
       // If no function call, just return the content
       return {

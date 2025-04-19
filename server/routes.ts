@@ -15,7 +15,7 @@ const chatRequestSchema = z.object({
     name: z.string(),
     description: z.string(),
     parameters: z.record(z.string()).optional()
-  })).optional()
+  })).optional().or(z.undefined())
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {

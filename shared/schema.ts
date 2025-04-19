@@ -95,9 +95,13 @@ export const insertToolSchema = createInsertSchema(tools).pick({
   parameters: true,
 });
 
-export const insertChatSessionSchema = createInsertSchema(chatSessions).pick({
-  user_id: true,
-});
+export const insertChatSessionSchema = createInsertSchema(chatSessions)
+  .omit({
+    id: true,
+    created_at: true,
+    last_active: true,
+    session_id: true
+  });
 
 export const insertMessageSchema = createInsertSchema(messages).pick({
   role: true,
