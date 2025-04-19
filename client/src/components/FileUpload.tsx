@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { uploadExcelFile, getUploadedFiles } from "@/lib/api";
 import { FileInfo } from "@/types";
 import { UploadIcon, FileIcon, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -17,11 +16,14 @@ export function FileUpload({ onSelect }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Fetch uploaded files when component mounts
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const uploadedFiles = await getUploadedFiles();
+        const response = await fetch('/api/files');
+        if (!response.ok) {
+          throw new Error('Failed to fetch files');
+        }
+        const uploadedFiles = await response.json();
         setFiles(uploadedFiles);
       } catch (error) {
         toast({
@@ -41,47 +43,35 @@ export function FileUpload({ onSelect }: FileUploadProps) {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
 
-    // Validate file
-    if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
-      toast({
-        title: "Unsupported File",
-        description: "Please upload only Excel files (.xlsx or .xls)",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsUploading(true);
 
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
-      
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error('שגיאה בהעלאת הקובץ');
       }
-      
-      const fileInfo = await response.json();
-      
-      // Add new file to the list
-      setFiles((prev) => [fileInfo.file, ...prev]);
-      
+
+      const result = await response.json();
+
+      setFiles((prev) => [result.file, ...prev]);
+
       toast({
-        title: "File Uploaded Successfully",
-        description: `File "${selectedFile.name}" has been uploaded`,
+        title: "הקובץ הועלה בהצלחה",
+        description: `הקובץ "${selectedFile.name}" הועלה בהצלחה`,
       });
-      
-      // Select the newly uploaded file
-      onSelect(fileInfo.file);
+
+      onSelect(result.file);
     } catch (error) {
       toast({
-        title: "Upload Error",
-        description: error instanceof Error ? error.message : "Failed to upload file",
+        title: "שגיאה בהעלאת הקובץ",
+        description: error instanceof Error ? error.message : "לא ניתן להעלות את הקובץ",
         variant: "destructive",
       });
     } finally {
@@ -90,20 +80,6 @@ export function FileUpload({ onSelect }: FileUploadProps) {
         fileInputRef.current.value = '';
       }
     }
-  };
-
-  const handleSelectFile = (file: FileInfo) => {
-    onSelect(file);
-    toast({
-      title: "נבחר קובץ",
-      description: `הקובץ "${file.name}" נבחר לניתוח`,
-    });
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -119,15 +95,9 @@ export function FileUpload({ onSelect }: FileUploadProps) {
             accept=".xlsx,.xls"
           />
           <Button 
-            variant="outline" 
-            onClick={(e) => {
-              e.preventDefault();
-              if (fileInputRef.current) {
-                fileInputRef.current.click();
-              }
-            }}
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            type="button"
           >
             {isUploading ? (
               <>
@@ -158,13 +128,13 @@ export function FileUpload({ onSelect }: FileUploadProps) {
             <Card 
               key={file.filename} 
               className="p-3 cursor-pointer hover:bg-accent flex items-center justify-between"
-              onClick={() => handleSelectFile(file)}
+              onClick={() => onSelect(file)}
             >
               <div className="flex items-center">
                 <FileIcon className="h-5 w-5 mr-2 text-blue-500" />
                 <div>
                   <div className="font-medium line-clamp-1">{file.name}</div>
-                  <div className="text-xs text-muted-foreground">{formatFileSize(file.size)}</div>
+                  <div className="text-xs text-muted-foreground">{file.size} bytes</div>
                 </div>
               </div>
               <Button variant="ghost" size="sm">
