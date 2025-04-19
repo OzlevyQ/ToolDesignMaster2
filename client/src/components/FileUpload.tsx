@@ -24,7 +24,11 @@ export function FileUpload({ onSelect }: FileUploadProps) {
           throw new Error('Failed to fetch files');
         }
         const uploadedFiles = await response.json();
-        setFiles(uploadedFiles);
+        if (Array.isArray(uploadedFiles)) {
+          setFiles(uploadedFiles);
+        } else {
+          setFiles([]);
+        }
       } catch (error) {
         toast({
           title: "שגיאה בטעינת קבצים",
@@ -59,8 +63,10 @@ export function FileUpload({ onSelect }: FileUploadProps) {
       }
 
       const result = await response.json();
-
-      setFiles((prev) => [result.file, ...prev]);
+      
+      if (result && result.file) {
+        setFiles((prev) => [result.file, ...prev]);
+      }
 
       toast({
         title: "הקובץ הועלה בהצלחה",
