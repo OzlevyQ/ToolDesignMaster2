@@ -3,7 +3,8 @@ import ToolsSection from "@/components/ToolsSection";
 import ChatSection from "@/components/ChatSection";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import ErrorPopup from "@/components/ErrorPopup";
-import { ConnectionState, Tool } from "@/types";
+import { FileUpload } from "@/components/FileUpload";
+import { ConnectionState, Tool, FileInfo } from "@/types";
 import { fetchTools } from "@/lib/api";
 
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
     avgResponse: 0
   });
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
 
   useEffect(() => {
     // Fetch tools on component mount
@@ -74,10 +76,26 @@ export default function Home() {
           </div>
         </header>
 
-        <main className="flex flex-col gap-6">
-          <ToolsSection tools={tools} />
-          <ChatSection tools={tools} onError={setError} onLatencyUpdate={updateAvgResponse} />
-          <ConnectionStatus state={connectionState} />
+        <main className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-4/12 space-y-6">
+            <ToolsSection tools={tools} />
+            <div className="bg-white rounded-lg shadow p-4">
+              <FileUpload onSelect={setSelectedFile} />
+              {selectedFile && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <h4 className="font-medium">קובץ נבחר:</h4>
+                  <p className="text-sm">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    נסה לשאול: "אנלז את קובץ ה-Excel הזה: {selectedFile.fullPath}"
+                  </p>
+                </div>
+              )}
+            </div>
+            <ConnectionStatus state={connectionState} />
+          </div>
+          <div className="w-full md:w-8/12">
+            <ChatSection tools={tools} onError={setError} onLatencyUpdate={updateAvgResponse} />
+          </div>
         </main>
 
         {/* Footer */}

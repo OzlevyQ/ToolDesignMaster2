@@ -34,3 +34,12 @@ export interface ChatResponse {
   functionCall?: FunctionCall;
   finalResponse?: string;
 }
+
+// File upload types
+export interface FileInfo {
+  name: string;
+  filename: string;
+  path: string;
+  fullPath: string;
+  size: number;
+}
