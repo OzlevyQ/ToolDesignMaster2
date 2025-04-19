@@ -44,8 +44,8 @@ export function FileUpload({ onSelect }: FileUploadProps) {
     // Validate file
     if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
       toast({
-        title: "קובץ לא נתמך",
-        description: "יש להעלות רק קבצי Excel (.xlsx או .xls)",
+        title: "Unsupported File",
+        description: "Please upload only Excel files (.xlsx or .xls)",
         variant: "destructive",
       });
       return;
@@ -54,22 +54,34 @@ export function FileUpload({ onSelect }: FileUploadProps) {
     setIsUploading(true);
 
     try {
-      const fileInfo = await uploadExcelFile(selectedFile);
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const fileInfo = await response.json();
       
       // Add new file to the list
-      setFiles((prev) => [fileInfo, ...prev]);
+      setFiles((prev) => [fileInfo.file, ...prev]);
       
       toast({
-        title: "הקובץ הועלה בהצלחה",
-        description: `הקובץ "${selectedFile.name}" הועלה בהצלחה`,
+        title: "File Uploaded Successfully",
+        description: `File "${selectedFile.name}" has been uploaded`,
       });
       
       // Select the newly uploaded file
-      onSelect(fileInfo);
+      onSelect(fileInfo.file);
     } catch (error) {
       toast({
-        title: "שגיאה בהעלאת הקובץ",
-        description: error instanceof Error ? error.message : "לא ניתן להעלות את הקובץ",
+        title: "Upload Error",
+        description: error instanceof Error ? error.message : "Failed to upload file",
         variant: "destructive",
       });
     } finally {
