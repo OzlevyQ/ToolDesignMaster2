@@ -1,0 +1,133 @@
+מסמך דרישות מוצר (PRD)
+
+שם המוצר
+SmartTools Chat
+צ׳אט ווב חכם שמשלב כלי backend (MCP) ותשתית LLM (Google Gemini) עם Function Calling
+
+⸻
+
+1. מבוא ורקע
+
+בעולם שבו מודלים גדולים לומדים (LLMs) נוטים “להמציא” (hallucinate) תשובות, דרושה מערכת שבה הקריאה למידע בזמן אמת (זמן, חישובים, גישה ל־API חיצוני) תתבצע על ידי כלים אמיתיים שרצים בשרת (MCP), בעוד שה‑LLM (Gemini) יבחר באופן אוטומטי ומבוסס Function Calling איזה כלי לקרוא.
+מטרה: ליצור ממשק ווב פשוט המאפשר למשתמש לשאול שאלות מילוליות, ולקבל תשובות מהימנות ומדויקות, הממוזגות עם יכולות הגנרטיב של Gemini.
+
+⸻
+
+2. יעדים (Goals)
+	1.	דיוק ואמינות: כל קריאה לנתונים חיצוניים (שעה, חישוב, API) תתבצע על ידי כלי MCP ייעודי, ללא “ממציאות”.
+	2.	גמישות: הוספת כלים חדשים בשרת ללא שינוי בקוד הלקוח.
+	3.	אינטגרציה חכמה: שימוש ב‑Function Calling של Gemini כדי לבחור כלים באופן אוטומטי.
+	4.	קלות שימוש: ממשק ווב מינימלי, נטול סיבוכים, להעלאה מהירה בסביבת Replit / Heroku / Vercel.
+
+⸻
+
+3. קהל היעד
+	•	מהנדסי תוכנה המעוניינים בסביבת Proof‑of‑Concept ל‑MCP + Function Calling
+	•	מפתחים שמבקשים שילוב בין כלים מיקרוסרביסיים ו‑LLM
+	•	צוותי R&D בענן (Google Cloud, Vertex AI)
+
+⸻
+
+4. הנחות ומגבלות
+	•	אין תמיכה קריפטית או מאובטחת מעבר ל־HTTPS ולמפתחות API סטנדרטיים.
+	•	המערכת מפעילה את השרת (Node.js + MCP SDK) ולקוח Express בסביבת JavaScript/ESM.
+	•	מפתח ה‑Gemini מועבר במפורש (אין .env).
+	•	GPT/Gemini לא ישתלט על הלוגיקה — כל דבר שדורש נתונים חיצוניים יעבור דרך כלי MCP.
+
+⸻
+
+5. תיאור המערכת
+
+5.1 ארכיטקטורה
+
+[Browser] ←HTTP→ [Express Client] ←STDIO→ [MCP Server]
+                      │                          │
+                      ↓                          ↓
+            REST calls to Gemini         כלים: get_time, add, multiply
+
+5.2 זרימת מידע
+	1.	המשתמש שולח שאלה (HTTP POST /api/chat).
+	2.	ה‑Client:
+	•	מושך רשימת functions via MCP.
+	•	שולח payload ל־Gemini Direct REST (/v1beta/chat/completions?key=…) עם functions & function_call:auto.
+	3.	Gemini מחזיר או function_call → הקליינט מריץ mcpClient.callTool(...) ומחזיר תוצאה לחזרה שנייה ל‑Gemini.
+	4.	תגובת Gemini הסופית מופיעה בדפדפן.
+
+⸻
+
+6. דרישות פונקציונליות
+
+קטגוריה	דרישה
+Function Calling	תמיכה בקריאת כלים לפי JSON‐schema (functions + function_call).
+Tools	לפחות 3 כלים: get_time(), add(a,b), multiply(a,b).
+API ל־Gemini	שימוש ב־Direct REST API (https://generativelanguage.googleapis.com/v1beta/chat/completions?key=…).
+ממשק ווב	דף HTML+JS מינימלי עם textarea, כפתור Send, ותיבת תוצאה <pre>.
+ניהול שגיאות	טיפול ברמת client/network/API (400/500), הודעות ידידותיות למשתמש.
+
+
+
+⸻
+
+7. דרישות לא־פונקציונליות
+	•	ביצועים: < 500 ms latency לקריאת כלי אחד, < 2 s end‑to‑end.
+	•	זמינות: 99.9% uptime (תלוי ב‑Replit/Heroku).
+	•	אבטחה: HTTPS לכל הקריאות, הגבלת מפתח API.
+	•	Scalability: קל להתקין Docker + Kubernetes בעתיד.
+
+⸻
+
+8. סיפור משתמש (User Story)
+
+כמשתמש, אני רוצה לשאול “What time is it?” ולקבל את השעה המדויקת מהכלי get_time, כדי לא להסתמך על זכרון המודל.
+
+⸻
+
+9. אבני דרך (Milestones & Timeline)
+
+שלב	תיאור	משך זמן מוערך
+תכנון & PRD	מסמך דרישות, ארכיטקטורה, בחירת טכנולוגיות	1 יום
+פיתוח Server.js	הגדרת MCP Server, כלים, בדיקות מקומיות	1–2 ימים
+פיתוח Client.js	Express UI, STDIOTransport, אינטגרציה עם Gemini	2 ימים
+PR Testing	בדיקות E2E, Mock Tools, Error Handling	1 יום
+Deployment	Dockerfile, Heroku/Vercel, תיעוד	1 יום
+מסירת MVP	review & hand‑off	0.5 יום
+
+
+
+⸻
+
+10. מדדי הצלחה (KPIs)
+	•	Precision: ≥ 95% מהתשובות לכלי יהיו מדויקות (בדיקת ידנית על 50 שאלות).
+	•	Response Time: 90% מתשובות בתוך < 2 s.
+	•	Usage: ≥ 100 שיחות ביום בחודש הראשון (MVP).
+	•	Feedback: מתן סקר “user satisfaction” עם ציון ≥ 4/5.
+
+⸻
+
+11. סיכונים ודרכי טיפול
+
+סיכון	השפעה	טיפול
+API Key compromise	Loss of service	הגבלת referrer, מחזור מפתחות תקופתי
+Latency of Gemini	איטיות חווית משתמש	Caching של תוצאות (למשל get_time לזמן קבוע)
+שינוי API של Gemini	שבירת ממשק	wrapper config, ניהול גרסאות נכנס/יוצא
+
+
+
+⸻
+
+12. קישורים ללמידה ולהמשך פיתוח
+	•	MCP Protocol: https://modelcontextprotocol.org/docs
+	•	Google Generative AI (Gemini) Direct REST: https://cloud.google.com/generative-ai/docs/reference/rest
+	•	OpenAI‑Compatibility Guide: https://cloud.google.com/generative-ai/docs/guides/openai-compatibility
+	•	Node.js Documentation: https://nodejs.org/en/docs/
+	•	Express.js Guide: https://expressjs.com/en/starter/installing.html
+	•	Zod Validation: https://github.com/colinhacks/zod
+	•	node‑fetch: https://github.com/node-fetch/node-fetch
+	•	Replit Deployment: https://docs.replit.com/tutorials/deploy-nodejs
+
+⸻
+
+הערה: התבניות בגוף הבקשות (JSON) ובניהול STDIO מבוססות על דוגמאות שפורסמו במדריך MCP ובדוקומנטציה של Gemini .
+
+—
+כתוב טוב יותר? אשמח לשמוע משוב מדויק ותיקונים להשלמת המסמך.
