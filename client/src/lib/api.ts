@@ -5,7 +5,14 @@ import { Tool, ChatResponse, FileInfo } from "@/types";
 export async function fetchTools(): Promise<Tool[]> {
   try {
     const response = await apiRequest("GET", "/api/tools", undefined);
-    return await response.json();
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      throw new Error("Invalid response format from server");
+    }
+    return data;
   } catch (error) {
     console.error("Failed to fetch tools:", error);
     throw new Error("Failed to load available tools. Please try again.");
