@@ -120,8 +120,14 @@ export function FileUpload({ onSelect }: FileUploadProps) {
           />
           <Button 
             variant="outline" 
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.preventDefault();
+              if (fileInputRef.current) {
+                fileInputRef.current.click();
+              }
+            }}
             disabled={isUploading}
+            type="button"
           >
             {isUploading ? (
               <>
