@@ -18,9 +18,10 @@ export async function sendChatMessage(
   tools: Tool[]
 ): Promise<ChatResponse> {
   try {
+    // We don't need to send the tools back to the server
+    // Server fetches them directly from database
     const response = await apiRequest("POST", "/api/chat", {
-      message,
-      tools
+      message
     });
     return await response.json();
   } catch (error) {

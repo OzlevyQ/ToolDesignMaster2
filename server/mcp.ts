@@ -24,7 +24,8 @@ export class MCPServer {
   
   constructor(toolExecutor: ToolExecutor) {
     this.toolExecutor = toolExecutor;
-    this.ensureSessionExists();
+    // Note: We'll call ensureSessionExists in processMessage
+    // to avoid async issues in constructor
   }
   
   // Make sure we have a valid session ID for storing messages
@@ -273,8 +274,8 @@ export class MCPServer {
               functionCall: {
                 name: functionCall.name,
                 args: typeof functionCall.arguments === 'string' 
-                  ? functionCall.arguments 
-                  : JSON.stringify(functionCall.arguments)
+                  ? JSON.parse(functionCall.arguments) // Parse string to object
+                  : functionCall.arguments // Pass as direct object
               }
             }
           ]
