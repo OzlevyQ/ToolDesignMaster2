@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -24,12 +25,9 @@ export function FileUpload({ onSelect }: FileUploadProps) {
           throw new Error('Failed to fetch files');
         }
         const uploadedFiles = await response.json();
-        if (Array.isArray(uploadedFiles)) {
-          setFiles(uploadedFiles);
-        } else {
-          setFiles([]);
-        }
+        setFiles(Array.isArray(uploadedFiles) ? uploadedFiles : []);
       } catch (error) {
+        console.error('Error fetching files:', error);
         toast({
           title: "שגיאה בטעינת קבצים",
           description: error instanceof Error ? error.message : "לא ניתן לטעון את רשימת הקבצים",
@@ -44,8 +42,19 @@ export function FileUpload({ onSelect }: FileUploadProps) {
   }, [toast]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault();
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
+
+    // Validate file type
+    if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
+      toast({
+        title: "קובץ לא נתמך",
+        description: "יש להעלות רק קבצי Excel (.xlsx או .xls)",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUploading(true);
 
@@ -66,15 +75,15 @@ export function FileUpload({ onSelect }: FileUploadProps) {
       
       if (result && result.file) {
         setFiles((prev) => [result.file, ...prev]);
+        onSelect(result.file);
+        
+        toast({
+          title: "הקובץ הועלה בהצלחה",
+          description: `הקובץ "${selectedFile.name}" הועלה בהצלחה`,
+        });
       }
-
-      toast({
-        title: "הקובץ הועלה בהצלחה",
-        description: `הקובץ "${selectedFile.name}" הועלה בהצלחה`,
-      });
-
-      onSelect(result.file);
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: "שגיאה בהעלאת הקובץ",
         description: error instanceof Error ? error.message : "לא ניתן להעלות את הקובץ",
@@ -102,8 +111,12 @@ export function FileUpload({ onSelect }: FileUploadProps) {
           />
           <Button 
             variant="outline"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }}
             disabled={isUploading}
+            type="button"
           >
             {isUploading ? (
               <>
