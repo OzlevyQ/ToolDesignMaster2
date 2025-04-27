@@ -40,7 +40,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(tools);
     } catch (error) {
       console.error("Error fetching tools:", error);
-      res.status(500).json({ message: "Failed to fetch tools" });
+      
+      // Check if it's a connection error
+      if (error instanceof Error && error.message.includes('endpoint is disabled')) {
+        return res.status(500).json({ 
+          message: "Database connection error. Please ensure the database is provisioned and enabled."
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to fetch tools",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
