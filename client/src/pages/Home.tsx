@@ -3,8 +3,7 @@ import ToolsSection from "@/components/ToolsSection";
 import ChatSection from "@/components/ChatSection";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import ErrorPopup from "@/components/ErrorPopup";
-import { FileUpload } from "@/components/FileUpload";
-import { ConnectionState, Tool, FileInfo } from "@/types";
+import { ConnectionState, Tool } from "@/types";
 import { fetchTools } from "@/lib/api";
 
 export default function Home() {
@@ -16,7 +15,6 @@ export default function Home() {
     avgResponse: 0
   });
   const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
 
   useEffect(() => {
     // Fetch tools on component mount
@@ -76,14 +74,10 @@ export default function Home() {
           </div>
         </header>
 
-        <main className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-3/12 space-y-6">
-            <ToolsSection tools={tools} />
-            <ConnectionStatus state={connectionState} />
-          </div>
-          <div className="w-full md:w-9/12">
-            <ChatSection tools={tools} onError={setError} onLatencyUpdate={updateAvgResponse} />
-          </div>
+        <main className="flex flex-col gap-6">
+          <ToolsSection tools={tools} />
+          <ChatSection tools={tools} onError={setError} onLatencyUpdate={updateAvgResponse} />
+          <ConnectionStatus state={connectionState} />
         </main>
 
         {/* Footer */}

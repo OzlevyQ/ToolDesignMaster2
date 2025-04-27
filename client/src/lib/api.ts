@@ -1,18 +1,11 @@
 import { apiRequest } from "./queryClient";
-import { Tool, ChatResponse, FileInfo } from "@/types";
+import { Tool, ChatResponse } from "@/types";
 
 // Fetch available tools from the server
 export async function fetchTools(): Promise<Tool[]> {
   try {
     const response = await apiRequest("GET", "/api/tools", undefined);
-    if (!response.ok) {
-      throw new Error(`Server responded with status: ${response.status}`);
-    }
-    const data = await response.json();
-    if (!Array.isArray(data)) {
-      throw new Error("Invalid response format from server");
-    }
-    return data;
+    return await response.json();
   } catch (error) {
     console.error("Failed to fetch tools:", error);
     throw new Error("Failed to load available tools. Please try again.");
@@ -38,43 +31,5 @@ export async function sendChatMessage(
         ? error.message 
         : "Failed to get a response. Please try again."
     );
-  }
-}
-
-// Upload an Excel file
-export async function uploadExcelFile(file: File): Promise<FileInfo> {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // We need to use fetch directly as apiRequest doesn't support FormData
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to upload file: ${response.statusText}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error("Failed to upload file:", error);
-    throw new Error(
-      error instanceof Error 
-        ? error.message 
-        : "Failed to upload file. Please try again."
-    );
-  }
-}
-
-// Get list of uploaded files
-export async function getUploadedFiles(): Promise<FileInfo[]> {
-  try {
-    const response = await apiRequest("GET", "/api/files", undefined);
-    return await response.json();
-  } catch (error) {
-    console.error("Failed to fetch files:", error);
-    throw new Error("Failed to load uploaded files. Please try again.");
   }
 }

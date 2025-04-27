@@ -9,22 +9,18 @@ async function throwIfResNotOk(res: Response) {
 
 export async function apiRequest(
   method: string,
-  path: string,
-  body: any
+  url: string,
+  data?: unknown | undefined,
 ): Promise<Response> {
-  try {
-    const response = await fetch(path, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return response;
-  } catch (error) {
-    console.error("API request failed:", error);
-    throw new Error("Network error occurred. Please check your connection.");
-  }
+  const res = await fetch(url, {
+    method,
+    headers: data ? { "Content-Type": "application/json" } : {},
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
