@@ -41,11 +41,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching tools:", error);
       
-      // Check if it's a connection error
-      if (error instanceof Error && error.message.includes('endpoint is disabled')) {
-        return res.status(500).json({ 
-          message: "Database connection error. Please ensure the database is provisioned and enabled."
-        });
+      // Enhanced error handling
+      if (error instanceof Error) {
+        if (error.message.includes('endpoint is disabled')) {
+          return res.status(500).json({ 
+            message: "Database connection error. Please ensure the database is provisioned and enabled in the Database tab."
+          });
+        } else if (error.message.includes('no such table')) {
+          return res.status(500).json({ 
+            message: "Database table not found. Schema might need to be initialized."
+          });
+        }
       }
       
       res.status(500).json({ 

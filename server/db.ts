@@ -12,9 +12,9 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL must be set");
 }
 
-// Use connection pooling for better performance
+// Use connection pooling with pooler URL
 const poolConfig = {
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL.replace('.us-east-2', '-pooler.us-east-2'),
   max: 10,
   ssl: true,
   wsProxy: true
